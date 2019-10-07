@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+Search Books
+{% endblock %}
+
+{% block body %}
+<form action="{{ url_for('login') }}" method="GET">
+  <input type="text" name="title">
+  <button>Go!</button>
+</form>
+{% endblock %}

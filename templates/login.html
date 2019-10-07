@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+Login
+{% endblock %}
+
+{% block body %}
+<form action="{{ url_for('login') }}" method="POST">
+  <input type="text" name="username">
+  <input type="text" name="password">
+  <button>Login</button>
+</form>
+{% endblock %}

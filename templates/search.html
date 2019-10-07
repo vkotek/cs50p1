@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+Search Books
+{% endblock %}
+
+{% block body %}
+<form action="{{ url_for('search') }}" method="GET">
+  <input type="text" name="title" placeholder="Title">
+  <input type="text" name="author" placeholder="Author">
+  <input type="text" name="isbn" placeholder="ISBN">
+  <button>Go!</button>
+</form>
+<hr>
+<table>
+  <tr>
+    <th>Title</th>
+    <th>Author</th>
+    <th>ISBN</th>
+  </tr>
+  {% for book in books %}
+    <tr>
+      <td><a href="{{ url_for('book', isbn=book[2]) }}">{{ book[0] }}</a></td>
+      <td>{{ book[1] }}</td>
+      <td>{{ book[2] }}</td>
+    </tr>
+  {% endfor %}
+</table>
+{% endblock %}

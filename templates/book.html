@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+{{ data.book.title }}
+{% endblock %}
+
+{% block body %}
+
+<hr>
+<a href="{{ url_for('search') }}">..back</a><br>
+
+<p>{{ data.book.title }} by {{ data.book.author }} published in {{ data.book.published }}</p>
+<p>ISBN: {{ data.book.isbn }}</p>
+
+<hr>
+
+<h2>Goodreads:</h2>
+<ul>
+{% if data.goodreads %}
+  <li>Av. Rating: {{ data.goodreads.average }}</li>
+  <li># of Ratings: {{ data.goodreads.count }}</li>
+{% else %}
+  Data not found.
+{% endif %}
+</ul>
+
+<h2>Reviews:</h2>
+<form action="{{ url_for('review_add') }}" method="POST">
+  <input name="user_id" type="text" value="{{ data.user.id }}" hidden>
+  <input name="book_id" type="text" value="{{ data.book.id }}" hidden>
+  <input name="book_isbn" type="text" value="{{ data.book.isbn }}" hidden>
+  <input name="review" type="textarea">
+  <button>Submit</button>
+</form>
+{% for review in data.reviews %}
+  {{ review }}
+{% endfor %}
+{% endblock %}
