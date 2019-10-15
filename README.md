@@ -13,5 +13,5 @@ Pages:
 ### /Books/
 Search for books with case-insensitive partial search
 
-### /Book/<isbn>/
+### /Book/{isbn}/
 Display information about a particular book. Read and write reviews.
