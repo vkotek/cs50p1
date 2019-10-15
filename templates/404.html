@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+Ooops
+{% endblock %}
+
+{% block body %}
+<p>Error 404: The requested page was not found!</p>
+<p><a href="{{ url_for('books') }}">Main Page</a></p>
+{% endblock %}

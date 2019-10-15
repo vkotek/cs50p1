@@ -1,12 +1,17 @@
 
 import os, requests
 
-from flask import Flask, session, render_template, request, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 
+from functools import wraps
+
+import json
+
 import settings
+import setup
 
 app = Flask(__name__)
 
@@ -23,93 +28,78 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-def login_required(func):
-    def wrapper_login_required():
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
         if session.get('user') is None:
             return redirect(url_for('login'))
-    return wrapper_login_required
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route("/books/")
 @login_required
 def search():
 
-    # title = request.args['title']
-    # author = request.args['author']
-    # isbn = request.args['isbn']
     params = {}
+    msg = None
 
     for i in ['title', 'author', 'isbn']:
         try:
             params[i] = request.args[i]
+
+            if len(params[i]) < 1:
+                raise("Invalid search")
+
         except:
             params[i] = None
 
-    query = text("""SELECT title, author, isbn FROM books
-            WHERE title LIKE :title
-            OR author LIKE :author
-            OR isbn LIKE :isbn""")
-    books = db.execute(query, {'title': params['title'], 'author': params['author'], 'isbn': params['isbn']}).fetchall()
-    return render_template("search.html", books=books)
+    title = params['title']
+    author = params['author']
+    isbn = params['isbn']
 
-@app.route("/book/<string:isbn>/", methods=["GET", "POST"])
+    query = text(f"SELECT title, author, isbn FROM books WHERE title ILIKE '%{title}%' OR author ILIKE '%{author}%' OR isbn ILIKE '{isbn}' ")
+
+    books = db.execute(query).fetchall()
+
+    if not books:
+
+        query = text("""SELECT title, author, isbn FROM books
+                ORDER BY title ASC LIMIT 20""")
+        books = db.execute(query).fetchall()
+
+        if any(params.values()):
+            msg = "No books found! Perhaps you like authors from the first page of Yellow Pages?"
+
+
+    return render_template("search.html", books=books, msg=msg)
+
+@app.route("/book/<string:isbn>/", methods=["GET"])
 @login_required
 def book(isbn):
 
-    if request.method == "POST":
-        user_id = session['user']
-        book_id = request.form.get('book_id')
-        review = request.form.get('review')
+    # Post review to book
+    
+    data = helpers.get_book_information(isbn)
 
-        query = text("INSERT INTO review (user_id, book_id, review) VALUES (:user_id, :book_id, :review)")
-        db.execute(query, {'user_id': user_id})
-        return redirect(url_for('book'), isbn=isbn)
-
-    data = {}
-    data['user'] = {}
-    data['user']['id'] = session['user']
-
-    # Get the book from DB and map it to dict
-    query = text("""SELECT * FROM books WHERE isbn = :isbn""")
-    res = db.execute(query, {'isbn': isbn}).fetchone()
-    data['book'] = {}
-    data['book']['id'] = res[0]
-    data['book']['isbn'] = res[1]
-    data['book']['title'] = res[2]
-    data['book']['author'] = res[3]
-    data['book']['published'] = res[4]
-
-    # Get goodreads data
-    KEY = settings.GOODREADS_KEY
-    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": KEY, "isbns": isbn})
-    res = res.json()['books'][0]
-    data['goodreads'] = {}
-    data['goodreads']['average'] =  res['average_rating']
-    data['goodreads']['count'] =  res['ratings_count']
-
-    # Get reviews for book
-    query = text("""SELECT * FROM reviews WHERE book_id = :book_id""")
-    res = db.execute(query, {'book_id': data['book']['id'] })
-    data['reviews'] = res.fetchall()
-
-    print(data)
     return render_template("book.html", data=data)
 
 @app.route("/review/add/", methods=["POST"])
 @login_required
 def review_add():
-    user_id = session['user']
-    book_id = request.form.get('book_id')
+    
+    user_id = int(session['user'])
+    book_id = int(request.form.get('book_id'))
     isbn = request.form.get('book_isbn')
     review = request.form.get('review')
 
-    query = text("INSERT INTO review (user_id, book_id, review) VALUES (:user_id, :book_id, :review)")
-    db.execute(query, {'user_id': user_id})
+    query = text("INSERT INTO reviews (user_id, book_id, review) VALUES (:user_id, :book_id, :review)")
+    db.execute(query, {'book_id': book_id, 'user_id': user_id, 'review': review})
+    db.commit()
+    
     return redirect(url_for('book', isbn=isbn))
 
 @app.route("/register/", methods=["GET","POST"])
 def register():
-
-    create_tables()
 
     if request.method == "GET":
         return render_template("register.html")
@@ -119,9 +109,9 @@ def register():
         password = request.form.get('password')
 
         query = text("INSERT INTO users (username, password) VALUES (:username, :password)")
-        print(query)
         result = db.execute(query, {'username': username, 'password': password})
-        print(result)
+        db.commit()
+
         return redirect(url_for('login'))
 
 @app.route("/logout/")
@@ -140,14 +130,102 @@ def login():
         query = text("SELECT id FROM users WHERE username = :username AND password = :password")
         result = db.execute(query, {'username': username, 'password': password}).fetchone()
         if result:
-            session['user'] = id
+            print(result)
+            session['user'] = result[0]
             return redirect(url_for('search'))
     return render_template("login.html")
 
-@app.route("/api/")
-def api():
-    return render_template("index.html", data=data)
+@app.route("/api/<string:isbn>/")
+def api(isbn):
+
+    a = helpers.get_database_data(isbn)
+    b = helpers.get_goodreads_data(isbn)
+    
+    a.update(b)
+
+    return jsonify(a)
+
+@app.errorhandler(404)
+def error404(e):
+    return render_template('404.html')
+
+class helpers(object):
+
+    @staticmethod
+    def get_book_information(isbn):
+
+        # Create data dict and add user info
+        data = {}
+        data['user'] = {}
+        data['user']['id'] = session['user']
+
+        # Add book information from DB
+        data['book'] = helpers.get_database_data(isbn)
+
+        # Add goodreads data from API
+        data['goodreads'] = helpers.get_goodreads_data(isbn)
+
+        # Get reviews for book
+        data['reviews'] = helpers.get_book_reviews(data['book']['id'])
+
+        return data
+
+    @staticmethod
+    def get_database_data(isbn):
+        query = text("""SELECT * FROM books WHERE isbn = :isbn""")
+        res = db.execute(query, {'isbn': isbn}).fetchone()
+        if not res:
+            return None
+        book = {}
+        book['id'] = res[0]
+        book['isbn'] = res[1]
+        book['title'] = res[2]
+        book['author'] = res[3]
+        book['year'] = res[4]
+        return book
+
+    @staticmethod
+    def get_goodreads_data(isbn):
+        KEY = settings.GOODREADS_KEY
+        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": KEY, "isbns": isbn})
+        res = res.json()['books'][0]
+        
+        if not res:
+            return None
+       
+        data = {}
+        data['average_rating'] = res['average_rating']
+        data['reviews_count'] = res['reviews_count']
+        
+        return data
+
+    @staticmethod
+    def get_book_reviews(book_id):
+        query = text("""SELECT u.username, r.review, r.created
+            FROM reviews r
+            LEFT JOIN users u
+            ON r.user_id = u.id
+            WHERE r.book_id = :book_id
+            """)
+        res = db.execute(query, {'book_id': book_id }).fetchall()
+        
+        if not res:
+            return None
+        
+        reviews = []
+        
+        for r in res:
+            review = {
+                'username': r[0],
+                'text': r[1],
+                'created': r[2]
+                }
+            reviews += review
+        
+        return res
 
 if __name__ == '__main__':
+    setup.set_environment_variables()
+    setup.create_tables(clear=False)
     emails = []
     app.run(host="0.0.0.0", port=8888, debug=True)

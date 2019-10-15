@@ -9,7 +9,7 @@
 <hr>
 <a href="{{ url_for('search') }}">..back</a><br>
 
-<p>{{ data.book.title }} by {{ data.book.author }} published in {{ data.book.published }}</p>
+<p>{{ data.book.title }} by {{ data.book.author }} published in {{ data.book.year }}</p>
 <p>ISBN: {{ data.book.isbn }}</p>
 
 <hr>
@@ -17,8 +17,8 @@
 <h2>Goodreads:</h2>
 <ul>
 {% if data.goodreads %}
-  <li>Av. Rating: {{ data.goodreads.average }}</li>
-  <li># of Ratings: {{ data.goodreads.count }}</li>
+  <li>Av. Rating: {{ data.goodreads.average_rating }}</li>
+  <li># of Ratings: {{ data.goodreads.reviews_count }}</li>
 {% else %}
   Data not found.
 {% endif %}
@@ -32,7 +32,14 @@
   <input name="review" type="textarea">
   <button>Submit</button>
 </form>
-{% for review in data.reviews %}
-  {{ review }}
-{% endfor %}
+{% if data.reviews %}
+<ul>
+    {% for review in data.reviews %}
+    <li>
+        <b>{{ review[0] }}</b>
+        <p>{{ review[1] }}</p>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
 {% endblock %}

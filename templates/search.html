@@ -12,6 +12,9 @@ Search Books
   <button>Go!</button>
 </form>
 <hr>
+{% if msg %}
+<h4>{{ msg }}</h4>
+{% endif %}
 <table>
   <tr>
     <th>Title</th>
