@@ -1,16 +1,27 @@
-# import.py
-# import books from CSV into the Databse (postresql)
+# setup.py
 
-import os
-import csv
+import os, csv
 from sqlalchemy import create_engine, text
-import settings
+
+from settings import GOODREADS_KEY, DATABASE_URL
 
 
 def set_environment_variables():
-    print("Setting up environment variables")
-    if not os.getenv("DATABASE_URL"):
-        os.putenv("DATABASE_URL", settings.DATABASE_URL)
+
+    def vars_exist():
+        if os.getenv("DATABASE_URL") and os.getenv("GOODREADS_KEY"):
+            return True
+        return False
+
+    if not vars_exist():
+        # os.putenv("DATABASE_URL", DATABASE_URL)
+        # os.putenv("GOODREADS_KEY", GOODREADS_KEY)
+        os.environ["DATABASE_URL"] = DATABASE_URL
+        os.environ["GOODREADS_KEY"] = GOODREADS_KEY
+
+    if not vars_exist():
+        raise RuntimeError("Required env variables could not be set..")
+
     return True
 
 def create_tables(clear=False, cli=False):
@@ -21,8 +32,8 @@ def create_tables(clear=False, cli=False):
     # DROP THE TABLE IF IT EXISTS
     if clear:
         print("Dropping tables..")
-        #query = """DROP TABLE IF EXISTS users CASCADE"""
-        #db.execute(query)
+        query = """DROP TABLE IF EXISTS users CASCADE"""
+        db.execute(query)
         query = """DROP TABLE IF EXISTS reviews CASCADE"""
         db.execute(query)
 
@@ -43,6 +54,16 @@ def create_tables(clear=False, cli=False):
             review VARCHAR,
             created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )""")
+    db.execute(query)
+
+    print("Creating 'books' table")
+    query = text("""CREATE TABLE IF NOT EXISTS books (
+        id SERIAL PRIMARY KEY,
+        isbn VARCHAR UNIQUE NOT NULL,
+        title VARCHAR NOT NULL,
+        author VARCHAR NOT NULL,
+        year INTEGER
+        )""")
     db.execute(query)
 
     # Query database using CLI

@@ -1,5 +1,5 @@
 
-import os, requests
+import os, requests, json
 
 from flask import Flask, session, render_template, request, redirect, url_for, jsonify
 from flask_session import Session
@@ -8,16 +8,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 from functools import wraps
 
-import json
-
-import settings
 import setup
 
 app = Flask(__name__)
 
-# Check for environment variable
-if not os.getenv("DATABASE_URL"):
-    raise RuntimeError("DATABASE_URL is not set")
+# Check for environment variables
+setup.set_environment_variables()
 
 # Configure session to use filesystem
 app.config["SESSION_PERMANENT"] = False
@@ -78,7 +74,7 @@ def search():
 def book(isbn):
 
     # Post review to book
-    
+
     data = helpers.get_book_information(isbn)
 
     return render_template("book.html", data=data)
@@ -86,7 +82,7 @@ def book(isbn):
 @app.route("/review/add/", methods=["POST"])
 @login_required
 def review_add():
-    
+
     user_id = int(session['user'])
     book_id = int(request.form.get('book_id'))
     isbn = request.form.get('book_isbn')
@@ -95,7 +91,7 @@ def review_add():
     query = text("INSERT INTO reviews (user_id, book_id, review) VALUES (:user_id, :book_id, :review)")
     db.execute(query, {'book_id': book_id, 'user_id': user_id, 'review': review})
     db.commit()
-    
+
     return redirect(url_for('book', isbn=isbn))
 
 @app.route("/register/", methods=["GET","POST"])
@@ -140,7 +136,7 @@ def api(isbn):
 
     a = helpers.get_database_data(isbn)
     b = helpers.get_goodreads_data(isbn)
-    
+
     a.update(b)
 
     return jsonify(a)
@@ -186,17 +182,18 @@ class helpers(object):
 
     @staticmethod
     def get_goodreads_data(isbn):
-        KEY = settings.GOODREADS_KEY
+        KEY = os.getenv("GOODREADS_KEY")
         res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": KEY, "isbns": isbn})
-        res = res.json()['books'][0]
-        
+
         if not res:
             return None
-       
+
+        res = res.json()['books'][0]
+
         data = {}
         data['average_rating'] = res['average_rating']
         data['reviews_count'] = res['reviews_count']
-        
+
         return data
 
     @staticmethod
@@ -208,12 +205,12 @@ class helpers(object):
             WHERE r.book_id = :book_id
             """)
         res = db.execute(query, {'book_id': book_id }).fetchall()
-        
+
         if not res:
             return None
-        
+
         reviews = []
-        
+
         for r in res:
             review = {
                 'username': r[0],
@@ -221,7 +218,7 @@ class helpers(object):
                 'created': r[2]
                 }
             reviews += review
-        
+
         return res
 
 if __name__ == '__main__':
