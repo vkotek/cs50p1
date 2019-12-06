@@ -1,7 +1,7 @@
 
 import os, requests, json
 
-from flask import Flask, session, render_template, request, redirect, url_for, jsonify
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify, abort
 from flask_session import Session
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -32,9 +32,15 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route("/")
+def index():
+    return redirect(url_for('search'))
+
 @app.route("/books/")
 @login_required
 def search():
+
+    user = helpers.get_user()
 
     params = {}
     msg = None
@@ -67,15 +73,16 @@ def search():
             msg = "No books found! Perhaps you like authors from the first page of Yellow Pages?"
 
 
-    return render_template("search.html", books=books, msg=msg)
+    return render_template("search.html", books=books, msg=msg, user=user)
 
 @app.route("/book/<string:isbn>/", methods=["GET"])
 @login_required
 def book(isbn):
 
-    # Post review to book
-
     data = helpers.get_book_information(isbn)
+
+    if not data:
+        abort(404, description="Book not found..")
 
     return render_template("book.html", data=data)
 
@@ -142,8 +149,9 @@ def api(isbn):
     return jsonify(a)
 
 @app.errorhandler(404)
-def error404(e):
-    return render_template('404.html')
+def page_not_found(e):
+    print(e)
+    return render_template('404.html', msg=str(e)), 404
 
 class helpers(object):
 
@@ -155,14 +163,17 @@ class helpers(object):
         data['user'] = {}
         data['user']['id'] = session['user']
 
-        # Add book information from DB
-        data['book'] = helpers.get_database_data(isbn)
+        try:
+            # Add book information from DB
+            data['book'] = helpers.get_database_data(isbn)
 
-        # Add goodreads data from API
-        data['goodreads'] = helpers.get_goodreads_data(isbn)
+            # Add goodreads data from API
+            data['goodreads'] = helpers.get_goodreads_data(isbn)
 
-        # Get reviews for book
-        data['reviews'] = helpers.get_book_reviews(data['book']['id'])
+            # Get reviews for book
+            data['reviews'] = helpers.get_book_reviews(data['book']['id'])
+        except:
+            return False
 
         return data
 
@@ -220,6 +231,16 @@ class helpers(object):
             reviews += review
 
         return res
+
+    @staticmethod
+    def get_user():
+        user_id = session.get('user')
+        if not user_id:
+            return None
+        query = text("""SELECT id, username FROM users WHERE id = :id""")
+        r = db.execute(query, {'id': user_id }).fetchone()
+
+        return {'id': r[0], 'username': r[1]}
 
 if __name__ == '__main__':
     setup.set_environment_variables()

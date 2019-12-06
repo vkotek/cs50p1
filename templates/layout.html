@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
   <head>
+    {% if user %}
+    <span>Hello {{ user.username }}! <a href="{{ url_for('logout') }}">Logout</a></span>
+    {% else %}
+    <span><a href="{{ url_for('login') }}">Login</a></span>
+    {% endif %}
     <title>{{ page_title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
