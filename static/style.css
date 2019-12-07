@@ -1,3 +1,65 @@
+body {
+    font-family: Source Code Pro;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  margin-top: 20px;
+  margin-bottom: 40px;
+  padding: 15px;
+  border: 2px solid #b7b7b7;
+  background: #c3c3c3;
+  border-radius: 5px;
+  box-shadow: 3px 3px 3px #585858;
+}
+
+h1, h2, h3, h4 {
+    font-family: Tomorrow;
+}
+
+form input, form button {
+  padding: 3px;
+  border: 0px;
+  background-color: #e6e6e6;
+}
+
+form input:focus {
+    outline: none;
+    background-color: white;
+}
+
+.footer {
+  margin: 10px 0 0 0;
+  text-align: center;
+}
+
+.login-bar {
+    float: right;
+}
+
+table {
+    width: 100%;
+}
+
 table th, table td {
   padding: 2px 10px;
+}
+
+ul.comments {
+    list-style: none;
+    padding: 0;
+}
+
+ul.comments li {
+    border: 2px solid #b7b7b7;
+    background-color: #ececec;
+    border-radius: 5px;
+    box-shadow: 3px 3px 3px #585858;
+    padding: 5px 10px;
+    margin: 7px;
+}
+
+ul.comments li p {
+    margin: 5px;
 }

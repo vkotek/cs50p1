@@ -6,9 +6,9 @@ Search Books
 
 {% block body %}
 <form action="{{ url_for('search') }}" method="GET">
-  <input type="text" name="title" placeholder="Title">
-  <input type="text" name="author" placeholder="Author">
-  <input type="text" name="isbn" placeholder="ISBN">
+  <input type="text" name="title" placeholder="Title" autocomplete="off">
+  <input type="text" name="author" placeholder="Author" autocomplete="off">
+  <input type="text" name="isbn" placeholder="ISBN" autocomplete="off">
   <button>Go!</button>
 </form>
 <hr>

@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html>
   <head>
-    {% if user %}
-    <span>Hello {{ user.username }}! <a href="{{ url_for('logout') }}">Logout</a></span>
-    {% else %}
-    <span><a href="{{ url_for('login') }}">Login</a></span>
-    {% endif %}
     <title>{{ page_title }}</title>
+    <link href="https://fonts.googleapis.com/css?family=Abel|Indie+Flower|Satisfy|Source+Code+Pro|Tomorrow&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
   <body>
-    <h1>{% block heading %}{% endblock %}</h1>
-    {% block body %}
-    {% endblock %}
+    <div class="container">
+      <h1>{% block heading %}{% endblock %}</h1>
+      {% block body %}
+      {% endblock %}
+      <p class="footer">
+          <span class="login-barz">
+              <a href="{{ url_for('search') }}">Search</a> |
+              {% if user %}
+              Logged in as <b>{{ user.username }}</b> | <a href="{{ url_for('logout') }}">Logout</a>
+              {% else %}
+              <a href="{{ url_for('login') }}">Login</a> |
+              <a href="{{ url_for('register') }}">Register</a>
+              {% endif %}
+          </span>
+        </p>
+    </div>
   </body>
 </html>

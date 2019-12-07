@@ -34,7 +34,8 @@ def login_required(f):
 
 @app.route("/")
 def index():
-    return redirect(url_for('search'))
+    return render_template('index.html')
+    # return redirect(url_for('search'))
 
 @app.route("/books/")
 @login_required
@@ -79,12 +80,14 @@ def search():
 @login_required
 def book(isbn):
 
+    user = helpers.get_user()
+
     data = helpers.get_book_information(isbn)
 
     if not data:
         abort(404, description="Book not found..")
 
-    return render_template("book.html", data=data)
+    return render_template("book.html", data=data, user=user)
 
 @app.route("/review/add/", methods=["POST"])
 @login_required

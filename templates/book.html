@@ -29,11 +29,11 @@
   <input name="user_id" type="text" value="{{ data.user.id }}" hidden>
   <input name="book_id" type="text" value="{{ data.book.id }}" hidden>
   <input name="book_isbn" type="text" value="{{ data.book.isbn }}" hidden>
-  <input name="review" type="textarea">
+  <input name="review" type="textarea" width="60%" autcomplete="off">
   <button>Submit</button>
 </form>
 {% if data.reviews %}
-<ul>
+<ul class="comments">
     {% for review in data.reviews %}
     <li>
         <b>{{ review[0] }}</b>
