@@ -11,7 +11,7 @@ It also has an API layer where user can retrieve book information by ISBN.
 ### /books/
 Search for books with case-insensitive partial search
 
-### /book/<isbn>/
+### /book/{isbn}/
 Display information about a particular book. Read and write reviews.
 
 ### /login/
@@ -22,5 +22,5 @@ Register a new user.
 
 ## API
 
-### /api/<isbn>/
+### /api/{isbn}/
 Returns the information about the book in JSON.
